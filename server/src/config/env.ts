@@ -15,7 +15,12 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().optional(),
 });
 
-const parsed = envSchema.safeParse(process.env);
+// API_PORT wins over PORT so tools that inject PORT for the frontend dev server
+// (or a shell with PORT already set) don't move the API. Hosts like Render set only PORT.
+const parsed = envSchema.safeParse({
+  ...process.env,
+  PORT: process.env.API_PORT ?? process.env.PORT,
+});
 if (!parsed.success) {
   console.error('Invalid environment variables', parsed.error.flatten().fieldErrors);
   process.exit(1);

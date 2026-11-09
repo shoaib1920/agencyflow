@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { connectDB, disconnectDB } from '../config/db';
 import { User } from '../models/User';
 import { RefreshToken } from '../models/RefreshToken';

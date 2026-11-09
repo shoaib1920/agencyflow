@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import { Task, type TaskAttrs } from '../models/Task';
 import { User } from '../models/User';
 import { AppError } from '../utils/AppError';
@@ -5,6 +6,8 @@ import type { AuthUser } from '../utils/types';
 import { logActivity } from './activity.service';
 import { notify } from './notification.service';
 import { assertProjectAccess } from './project.service';
+
+type ProjectDoc = Awaited<ReturnType<typeof assertProjectAccess>>;
 
 export async function listTasks(user: AuthUser, projectId: string) {
   await assertProjectAccess(user, projectId);
@@ -25,15 +28,21 @@ async function notifyAssignee(actor: AuthUser, assigneeId: string, taskTitle: st
   });
 }
 
-async function ensureAssigneeExists(id: unknown) {
-  if (id && !(await User.exists({ _id: id, isActive: true }))) {
+/** Assignee must be an active user; if they aren't on the project yet, add them so they can see it. */
+async function ensureAssignee(project: ProjectDoc, id: unknown) {
+  if (!id) return;
+  if (!(await User.exists({ _id: id, isActive: true }))) {
     throw AppError.badRequest('Assignee does not exist');
+  }
+  if (!project.members.some((m) => String(m) === String(id))) {
+    project.members.push(new Types.ObjectId(String(id)));
+    await project.save();
   }
 }
 
 export async function createTask(user: AuthUser, projectId: string, input: Partial<TaskAttrs>) {
   const project = await assertProjectAccess(user, projectId);
-  await ensureAssigneeExists(input.assignee);
+  await ensureAssignee(project, input.assignee);
   const task = await Task.create({
     ...input,
     project: projectId,
@@ -63,7 +72,7 @@ export async function updateTask(
   const project = await assertProjectAccess(user, projectId);
   const task = await Task.findOne({ _id: taskId, project: projectId });
   if (!task) throw AppError.notFound('Task');
-  await ensureAssigneeExists(input.assignee);
+  await ensureAssignee(project, input.assignee);
 
   const prevStatus = task.status;
   const prevAssignee = task.assignee ? String(task.assignee) : null;
