@@ -220,7 +220,7 @@ npm test
 ## Deployment
 
 1. **Database**: create a free MongoDB Atlas cluster, allow Render's egress (or `0.0.0.0/0` for a demo), copy the connection string.
-2. **API on Render**: New → Blueprint → pick this repo (`render.yaml`). Set `MONGO_URI`, `CLIENT_URL` (your Vercel URL) and optionally the Cloudinary keys. JWT secrets are generated. Run the seed once from the Render shell: `npm run seed` (requires dev deps, which the build installs).
+2. **API on Render**: New → Blueprint → pick this repo (`render.yaml`). Set `MONGO_URI`, `CLIENT_URL` (your Vercel URL) and optionally the Cloudinary keys. JWT secrets are generated. Seed Atlas once from your machine (Render's free tier has no shell): set `MONGO_URI` to the Atlas string for a single command and run `npm run seed` in `server/`. Note: without Cloudinary keys, uploaded files live on Render's ephemeral disk and disappear on redeploy.
 3. **Web on Vercel**: import the repo with **Root Directory = `client`**, set `VITE_API_URL` to the Render URL. `vercel.json` rewrites all routes to `index.html`.
 
 Cross-domain auth works because in production the refresh cookie is `SameSite=None; Secure; HttpOnly`, CORS allows only `CLIENT_URL` with credentials, and Express trusts the proxy so `secure` cookies are set behind Render's TLS terminator.
