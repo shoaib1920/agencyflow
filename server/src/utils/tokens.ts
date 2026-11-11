@@ -8,6 +8,7 @@ export interface AccessPayload {
   sub: string;
   role: Role;
   name: string;
+  clientId?: string;
 }
 
 export interface RefreshPayload {

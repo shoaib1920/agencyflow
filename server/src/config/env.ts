@@ -1,6 +1,11 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+const optional = z
+  .string()
+  .optional()
+  .transform((v) => (v && v.trim() ? v.trim() : undefined));
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(5000),
@@ -10,9 +15,23 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(16).default('dev-refresh-secret-change-me-please'),
   ACCESS_TOKEN_TTL: z.string().default('15m'),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().default(7),
-  CLOUDINARY_CLOUD_NAME: z.string().optional(),
-  CLOUDINARY_API_KEY: z.string().optional(),
-  CLOUDINARY_API_SECRET: z.string().optional(),
+  CLOUDINARY_CLOUD_NAME: optional,
+  CLOUDINARY_API_KEY: optional,
+  CLOUDINARY_API_SECRET: optional,
+  // Email (any SMTP provider: Resend, Brevo, Gmail app password, Mailtrap...)
+  SMTP_HOST: optional,
+  SMTP_PORT: z.coerce.number().default(587),
+  SMTP_USER: optional,
+  SMTP_PASS: optional,
+  MAIL_FROM: z.string().default('AgencyFlow <no-reply@agencyflow.dev>'),
+  // Claude API for AI lead assist
+  ANTHROPIC_API_KEY: optional,
+  // Background jobs (reminder emails, trash purge)
+  CRON_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v !== 'false'),
+  LOG_LEVEL: z.string().default('info'),
 });
 
 // API_PORT wins over PORT so tools that inject PORT for the frontend dev server
@@ -26,14 +45,20 @@ if (!parsed.success) {
   process.exit(1);
 }
 
+const clientOrigins = parsed.data.CLIENT_URL.split(',').map((o) => o.trim());
+
 export const env = {
   ...parsed.data,
   isProd: parsed.data.NODE_ENV === 'production',
   isTest: parsed.data.NODE_ENV === 'test',
-  clientOrigins: parsed.data.CLIENT_URL.split(',').map((o) => o.trim()),
+  clientOrigins,
+  /** Base URL used in emails and invite links. */
+  appUrl: clientOrigins[0] ?? 'http://localhost:5173',
   cloudinaryEnabled: Boolean(
     parsed.data.CLOUDINARY_CLOUD_NAME &&
       parsed.data.CLOUDINARY_API_KEY &&
       parsed.data.CLOUDINARY_API_SECRET,
   ),
+  mailEnabled: Boolean(parsed.data.SMTP_HOST),
+  aiEnabled: Boolean(parsed.data.ANTHROPIC_API_KEY),
 };

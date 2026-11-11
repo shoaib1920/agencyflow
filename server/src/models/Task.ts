@@ -1,4 +1,5 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
+import { softDeleteFields, softDeletePlugin } from '../utils/softDelete';
 
 export const TASK_STATUSES = ['todo', 'in-progress', 'done'] as const;
 export const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
@@ -14,6 +15,9 @@ const taskSchema = new Schema(
     dueDate: { type: Date },
     completedAt: { type: Date },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    position: { type: Number, default: 0 },
+    lastReminderAt: { type: Date },
+    ...softDeleteFields,
   },
   { timestamps: true },
 );
@@ -22,4 +26,5 @@ taskSchema.index({ project: 1, status: 1 });
 taskSchema.index({ assignee: 1, status: 1 });
 
 export type TaskAttrs = InferSchemaType<typeof taskSchema>;
+taskSchema.plugin(softDeletePlugin);
 export const Task = model('Task', taskSchema);

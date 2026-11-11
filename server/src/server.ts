@@ -3,6 +3,8 @@ import { env } from './config/env';
 import { connectDB } from './config/db';
 import { createApp } from './app';
 import { initSocket } from './socket';
+import { startScheduler } from './jobs/scheduler';
+import { logger } from './config/logger';
 
 async function bootstrap() {
   await connectDB();
@@ -11,8 +13,10 @@ async function bootstrap() {
   initSocket(server);
 
   server.listen(env.PORT, () => {
-    console.log(`AgencyFlow API listening on http://localhost:${env.PORT}`);
+    logger.info(`AgencyFlow API listening on http://localhost:${env.PORT} (docs: /api/docs)`);
+    logger.info({ email: env.mailEnabled, ai: env.aiEnabled, cloudinary: env.cloudinaryEnabled }, 'Optional integrations');
   });
+  startScheduler();
 
   const shutdown = (signal: string) => {
     console.log(`${signal} received, shutting down`);

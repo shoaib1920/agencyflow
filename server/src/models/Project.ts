@@ -1,4 +1,5 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
+import { softDeleteFields, softDeletePlugin } from '../utils/softDelete';
 
 export const PROJECT_STATUSES = ['planning', 'active', 'on-hold', 'completed'] as const;
 
@@ -26,6 +27,8 @@ const projectSchema = new Schema(
     members: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     attachments: [attachmentSchema],
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    estimatedHours: { type: Number, min: 0 },
+    ...softDeleteFields,
   },
   { timestamps: true },
 );
@@ -35,4 +38,5 @@ projectSchema.index({ members: 1 });
 projectSchema.index({ status: 1, deadline: 1 });
 
 export type ProjectAttrs = InferSchemaType<typeof projectSchema>;
+projectSchema.plugin(softDeletePlugin);
 export const Project = model('Project', projectSchema);

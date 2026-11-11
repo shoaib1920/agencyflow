@@ -1,4 +1,5 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
+import { softDeleteFields, softDeletePlugin } from '../utils/softDelete';
 
 export const LEAD_STAGES = ['new', 'contacted', 'proposal', 'negotiation', 'won', 'lost'] as const;
 export type LeadStage = (typeof LEAD_STAGES)[number];
@@ -21,6 +22,7 @@ const leadSchema = new Schema(
     client: { type: Schema.Types.ObjectId, ref: 'Client' },
     wonAt: { type: Date },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    ...softDeleteFields,
   },
   { timestamps: true },
 );
@@ -30,4 +32,5 @@ leadSchema.index({ stage: 1, wonAt: 1 });
 leadSchema.index({ owner: 1 });
 
 export type LeadAttrs = InferSchemaType<typeof leadSchema>;
+leadSchema.plugin(softDeletePlugin);
 export const Lead = model('Lead', leadSchema);

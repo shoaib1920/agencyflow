@@ -5,15 +5,18 @@ import * as notificationService from '../services/notification.service';
 import { listActivity } from '../services/activity.service';
 import { getStats } from '../services/dashboard.service';
 import { myOpenTasks } from '../services/task.service';
+import { invoiceSummary } from '../services/invoice.service';
 
 export const dashboard = asyncHandler(async (req, res) => {
   const user = currentUser(req);
-  const [stats, activity, myTasks] = await Promise.all([
+  const isStaff = user.role === 'admin' || user.role === 'manager';
+  const [stats, activity, myTasks, money] = await Promise.all([
     getStats(),
     listActivity({ limit: 12 }),
     myOpenTasks(user.id),
+    isStaff ? invoiceSummary() : Promise.resolve(null), // money is staff-only
   ]);
-  sendSuccess(res, { ...stats, activity, myTasks });
+  sendSuccess(res, { ...stats, activity, myTasks, money });
 });
 
 export const activity = asyncHandler(async (req, res) => {

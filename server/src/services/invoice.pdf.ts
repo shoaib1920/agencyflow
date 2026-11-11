@@ -1,0 +1,113 @@
+import PDFDocument from 'pdfkit';
+
+export interface InvoicePdfData {
+  number: string;
+  status: string;
+  issueDate: Date;
+  dueDate: Date;
+  currency: string;
+  client: { name: string; company?: string | null; email: string; country?: string | null };
+  project?: { title: string } | null;
+  items: { description: string; quantity: number; unitPrice: number }[];
+  subtotal: number;
+  discount: number;
+  taxRate: number;
+  tax: number;
+  total: number;
+  notes?: string | null;
+  paidAt?: Date | null;
+}
+
+const INDIGO = '#4f46e5';
+const MUTED = '#6b7280';
+const INK = '#111827';
+
+/** Renders an invoice to a PDF buffer (used for downloads and email attachments). */
+export function renderInvoicePdf(inv: InvoicePdfData, agencyName = 'AgencyFlow'): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    const chunks: Buffer[] = [];
+    doc.on('data', (c: Buffer) => chunks.push(c));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const money = (n: number) =>
+      new Intl.NumberFormat('en-US', { style: 'currency', currency: inv.currency }).format(n);
+    const date = (d: Date) => d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    const W = doc.page.width - 100;
+
+    // Header
+    doc.rect(0, 0, doc.page.width, 8).fill(INDIGO);
+    doc.fillColor(INDIGO).font('Helvetica-Bold').fontSize(20).text(agencyName, 50, 40);
+    doc.fillColor(INK).fontSize(26).text('INVOICE', 50, 40, { width: W, align: 'right' });
+    doc.fillColor(MUTED).font('Helvetica').fontSize(10).text(inv.number, 50, 72, { width: W, align: 'right' });
+    if (inv.status === 'paid') {
+      doc.fillColor('#059669').font('Helvetica-Bold').fontSize(11).text('PAID', 50, 88, { width: W, align: 'right' });
+    }
+
+    // Bill to + dates
+    let y = 130;
+    doc.fillColor(MUTED).font('Helvetica-Bold').fontSize(9).text('BILL TO', 50, y);
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(11).text(inv.client.company || inv.client.name, 50, y + 14);
+    doc.font('Helvetica').fontSize(10).fillColor('#374151');
+    if (inv.client.company) doc.text(inv.client.name);
+    doc.text(inv.client.email);
+    if (inv.client.country) doc.text(inv.client.country);
+
+    const meta: [string, string][] = [
+      ['Issue date', date(inv.issueDate)],
+      ['Due date', date(inv.dueDate)],
+      ...(inv.paidAt ? ([['Paid on', date(inv.paidAt)]] as [string, string][]) : []),
+      ...(inv.project ? ([['Project', inv.project.title]] as [string, string][]) : []),
+    ];
+    meta.forEach(([k, v], i) => {
+      doc.fillColor(MUTED).font('Helvetica').fontSize(9).text(k, 330, y + i * 16, { width: 80 });
+      doc.fillColor(INK).font('Helvetica-Bold').fontSize(10).text(v, 410, y + i * 16, { width: W - 360, align: 'right' });
+    });
+
+    // Items table
+    y = 240;
+    const cols = { desc: 50, qty: 330, price: 390, amount: 470 };
+    doc.rect(50, y, W, 22).fill('#eef2ff');
+    doc.fillColor(INDIGO).font('Helvetica-Bold').fontSize(9);
+    doc.text('DESCRIPTION', cols.desc + 8, y + 7);
+    doc.text('QTY', cols.qty, y + 7, { width: 50, align: 'right' });
+    doc.text('UNIT PRICE', cols.price, y + 7, { width: 70, align: 'right' });
+    doc.text('AMOUNT', cols.amount, y + 7, { width: W + 50 - cols.amount, align: 'right' });
+    y += 30;
+    doc.font('Helvetica').fontSize(10).fillColor(INK);
+    for (const item of inv.items) {
+      const h = Math.max(doc.heightOfString(item.description, { width: 260 }), 14);
+      doc.text(item.description, cols.desc + 8, y, { width: 260 });
+      doc.text(String(item.quantity), cols.qty, y, { width: 50, align: 'right' });
+      doc.text(money(item.unitPrice), cols.price, y, { width: 70, align: 'right' });
+      doc.text(money(item.quantity * item.unitPrice), cols.amount, y, { width: W + 50 - cols.amount, align: 'right' });
+      y += h + 10;
+      doc.moveTo(50, y - 5).lineTo(50 + W, y - 5).strokeColor('#e5e7eb').lineWidth(0.5).stroke();
+    }
+
+    // Totals
+    y += 10;
+    const line = (label: string, value: string, bold = false) => {
+      doc.fillColor(bold ? INK : MUTED).font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(bold ? 12 : 10);
+      doc.text(label, 330, y, { width: 120 });
+      doc.text(value, 410, y, { width: W - 360, align: 'right' });
+      y += bold ? 22 : 16;
+    };
+    line('Subtotal', money(inv.subtotal));
+    if (inv.discount) line('Discount', `-${money(inv.discount)}`);
+    if (inv.taxRate) line(`Tax (${inv.taxRate}%)`, money(inv.tax));
+    doc.moveTo(330, y).lineTo(50 + W, y).strokeColor(INDIGO).lineWidth(1).stroke();
+    y += 8;
+    line('Total due', money(inv.total), true);
+
+    if (inv.notes) {
+      y += 20;
+      doc.fillColor(MUTED).font('Helvetica-Bold').fontSize(9).text('NOTES', 50, y);
+      doc.fillColor('#374151').font('Helvetica').fontSize(10).text(inv.notes, 50, y + 14, { width: W });
+    }
+
+    doc.fillColor(MUTED).fontSize(8).text(`Generated by ${agencyName}`, 50, doc.page.height - 60, { width: W, align: 'center' });
+    doc.end();
+  });
+}

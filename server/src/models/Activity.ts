@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 
-export const ENTITY_TYPES = ['client', 'lead', 'project', 'task', 'user'] as const;
+export const ENTITY_TYPES = ['client', 'lead', 'project', 'task', 'user', 'invoice'] as const;
 
 const activitySchema = new Schema(
   {

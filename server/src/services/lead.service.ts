@@ -71,7 +71,7 @@ export async function updateLead(actorId: string, id: string, input: Partial<Lea
 }
 
 export async function deleteLead(actorId: string, id: string) {
-  const lead = await Lead.findByIdAndDelete(id);
+  const lead = await Lead.findOneAndUpdate({ _id: id }, { $set: { deletedAt: new Date(), deletedBy: actorId } }, { new: true });
   if (!lead) throw AppError.notFound('Lead');
   await logActivity({
     actorId,

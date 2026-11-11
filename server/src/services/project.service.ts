@@ -2,7 +2,6 @@ import { Types, type FilterQuery, type SortOrder } from 'mongoose';
 import { Project, type ProjectAttrs } from '../models/Project';
 import { Task } from '../models/Task';
 import { Client } from '../models/Client';
-import { Activity } from '../models/Activity';
 import { AppError } from '../utils/AppError';
 import { buildMeta, escapeRegex } from '../utils/pagination';
 import type { AuthUser } from '../utils/types';
@@ -10,7 +9,12 @@ import { logActivity } from './activity.service';
 import { deleteStoredFile, storeFile } from './upload.service';
 
 /** Members only see projects they are assigned to; admins and managers see everything. */
-function scopeFilter(user: AuthUser): FilterQuery<ProjectAttrs> {
+/**
+ * Row-level access: members see projects they are on, portal clients see only their own
+ * company's projects, admins and managers see everything.
+ */
+export function scopeFilter(user: AuthUser): FilterQuery<ProjectAttrs> {
+  if (user.role === 'client') return { client: user.clientId ?? new Types.ObjectId() };
   return user.role === 'member' ? { members: new Types.ObjectId(user.id) } : {};
 }
 
@@ -109,13 +113,16 @@ export async function updateProject(actorId: string, id: string, input: Partial<
 }
 
 export async function deleteProject(actorId: string, id: string) {
-  const project = await Project.findByIdAndDelete(id);
+  // Soft delete the project and its tasks with the same timestamp, so a restore brings
+  // back exactly the tasks that were removed together with it.
+  const deletedAt = new Date();
+  const project = await Project.findOneAndUpdate(
+    { _id: id },
+    { $set: { deletedAt, deletedBy: actorId } },
+    { new: true },
+  );
   if (!project) throw AppError.notFound('Project');
-  await Promise.all([
-    Task.deleteMany({ project: id }),
-    Activity.deleteMany({ project: id }),
-    ...project.attachments.map((a) => deleteStoredFile(a.storage, a.url, a.publicId ?? undefined)),
-  ]);
+  await Task.updateMany({ project: id }, { $set: { deletedAt, deletedBy: actorId } });
   await logActivity({
     actorId,
     action: 'deleted',

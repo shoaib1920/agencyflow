@@ -19,7 +19,7 @@ export interface AuthResult {
   refreshToken: string;
 }
 
-async function issueTokens(user: UserDoc, family: string, userAgent?: string) {
+export async function issueTokens(user: UserDoc, family: string, userAgent?: string) {
   const jti = randomId();
   const refreshToken = signRefreshToken({ sub: user.id as string, jti, family });
   await RefreshToken.create({
@@ -34,6 +34,7 @@ async function issueTokens(user: UserDoc, family: string, userAgent?: string) {
     sub: user.id as string,
     role: user.role as Role,
     name: user.name,
+    ...(user.client ? { clientId: String(user.client) } : {}),
   });
   return { accessToken, refreshToken, jti };
 }
@@ -124,7 +125,7 @@ export async function logout(rawToken: string | undefined): Promise<void> {
 }
 
 export async function getMe(userId: string) {
-  const user = await User.findById(userId).lean();
+  const user = await User.findById(userId).populate('client', 'name company').lean();
   if (!user) throw AppError.notFound('User');
   const { password: _pw, __v: _v, ...rest } = user as typeof user & { password?: string; __v?: number };
   return rest;

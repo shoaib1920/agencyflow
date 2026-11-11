@@ -4,8 +4,9 @@ import { currentUser } from '../middleware/auth';
 import * as userService from '../services/user.service';
 
 export const list = asyncHandler(async (req, res) => {
-  const includeInactive = currentUser(req).role === 'admin' && req.query.all === 'true';
-  sendSuccess(res, await userService.listUsers({ includeInactive }));
+  const isAdmin = currentUser(req).role === 'admin';
+  const includeInactive = isAdmin && req.query.all === 'true';
+  sendSuccess(res, await userService.listUsers({ includeInactive, includeClients: includeInactive }));
 });
 
 export const create = asyncHandler(async (req, res) => {

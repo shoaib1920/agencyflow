@@ -74,7 +74,8 @@ export async function deleteClient(actorId: string, id: string) {
   if (await Project.exists({ client: id })) {
     throw AppError.conflict('This client has projects. Delete or reassign them first.');
   }
-  const client = await Client.findByIdAndDelete(id);
+  // Soft delete: goes to the trash and can be restored for 30 days
+  const client = await Client.findOneAndUpdate({ _id: id }, { $set: { deletedAt: new Date(), deletedBy: actorId } }, { new: true });
   if (!client) throw AppError.notFound('Client');
   await logActivity({
     actorId,

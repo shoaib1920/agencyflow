@@ -4,10 +4,14 @@ import { AppError } from '../utils/AppError';
 import { logActivity } from './activity.service';
 import type { Role } from '../utils/types';
 
-export async function listUsers({ includeInactive = false } = {}) {
-  return User.find(includeInactive ? {} : { isActive: true })
+/** Team members by default; portal users only when asked for (admin team page). */
+export async function listUsers({ includeInactive = false, includeClients = false } = {}) {
+  const filter: Record<string, unknown> = includeInactive ? {} : { isActive: true };
+  if (!includeClients) filter.role = { $ne: 'client' };
+  return User.find(filter)
     .sort({ role: 1, name: 1 })
-    .select('name email role title avatarColor isActive lastLoginAt createdAt')
+    .select('name email role title avatarColor isActive lastLoginAt createdAt client')
+    .populate('client', 'name company')
     .lean();
 }
 
@@ -38,6 +42,9 @@ export async function updateUser(
   }
   const user = await User.findById(id);
   if (!user) throw AppError.notFound('User');
+  if (user.role === 'client' && input.role) {
+    throw AppError.badRequest('Portal users belong to a client and cannot be given a team role');
+  }
 
   // Never leave the agency without an admin
   if (user.role === 'admin' && (input.role && input.role !== 'admin' || input.isActive === false)) {

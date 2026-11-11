@@ -1,4 +1,5 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
+import { softDeleteFields, softDeletePlugin } from '../utils/softDelete';
 
 export const CLIENT_STATUSES = ['active', 'paused', 'closed'] as const;
 
@@ -13,6 +14,7 @@ const clientSchema = new Schema(
     notes: { type: String, maxlength: 5000 },
     sourceLead: { type: Schema.Types.ObjectId, ref: 'Lead' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    ...softDeleteFields,
   },
   { timestamps: true },
 );
@@ -22,4 +24,5 @@ clientSchema.index({ name: 'text', company: 'text', email: 'text' });
 clientSchema.index({ email: 1 });
 
 export type ClientAttrs = InferSchemaType<typeof clientSchema>;
+clientSchema.plugin(softDeletePlugin);
 export const Client = model('Client', clientSchema);

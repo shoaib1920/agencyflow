@@ -12,7 +12,7 @@ type ProjectDoc = Awaited<ReturnType<typeof assertProjectAccess>>;
 export async function listTasks(user: AuthUser, projectId: string) {
   await assertProjectAccess(user, projectId);
   return Task.find({ project: projectId })
-    .sort({ status: 1, dueDate: 1, createdAt: -1 })
+    .sort({ status: 1, position: 1, createdAt: 1 })
     .populate('assignee', 'name avatarColor')
     .lean();
 }
@@ -43,8 +43,14 @@ async function ensureAssignee(project: ProjectDoc, id: unknown) {
 export async function createTask(user: AuthUser, projectId: string, input: Partial<TaskAttrs>) {
   const project = await assertProjectAccess(user, projectId);
   await ensureAssignee(project, input.assignee);
+  // New tasks go to the bottom of their board column
+  const last = await Task.findOne({ project: projectId, status: input.status ?? 'todo' })
+    .sort({ position: -1 })
+    .select('position')
+    .lean();
   const task = await Task.create({
     ...input,
+    position: (last?.position ?? 0) + 1000,
     project: projectId,
     createdBy: user.id,
     completedAt: input.status === 'done' ? new Date() : undefined,

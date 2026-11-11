@@ -1,10 +1,22 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 
+export const NOTIFICATION_TYPES = [
+  'task_assigned',
+  'lead_stage',
+  'lead_won',
+  'mention',
+  'comment',
+  'reminder',
+  'invoice',
+  'system',
+] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+
 const notificationSchema = new Schema(
   {
     recipient: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     actor: { type: Schema.Types.ObjectId, ref: 'User' },
-    type: { type: String, enum: ['task_assigned', 'lead_stage', 'lead_won', 'system'], required: true },
+    type: { type: String, enum: NOTIFICATION_TYPES, required: true },
     title: { type: String, required: true },
     body: { type: String },
     link: { type: String },

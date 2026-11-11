@@ -11,6 +11,9 @@ const userSchema = new Schema(
     title: { type: String, trim: true, maxlength: 80 },
     avatarColor: { type: String, default: '#6366f1' },
     isActive: { type: Boolean, default: true },
+    /** Portal users belong to exactly one client company. */
+    client: { type: Schema.Types.ObjectId, ref: 'Client' },
+    emailNotifications: { type: Boolean, default: true },
     lastLoginAt: { type: Date },
   },
   { timestamps: true },
