@@ -1,7 +1,9 @@
 import { NavLink } from 'react-router-dom';
 import {
+  FileText,
   FolderKanban,
   KanbanSquare,
+  Trash2,
   LayoutDashboard,
   PanelLeftClose,
   PanelLeftOpen,
@@ -33,11 +35,13 @@ export function Logo({ collapsed }: { collapsed?: boolean }) {
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const { toggleSidebar } = useUI();
-  const { isAdmin } = usePermissions();
+  const { isAdmin, isStaff } = usePermissions();
 
   const items = [
     ...NAV,
+    ...(isStaff ? [{ to: '/invoices', label: 'Invoices', icon: FileText, end: false }] : []),
     ...(isAdmin ? [{ to: '/team', label: 'Team', icon: Users, end: false }] : []),
+    ...(isStaff ? [{ to: '/trash', label: 'Trash', icon: Trash2, end: false }] : []),
     { to: '/settings', label: 'Settings', icon: Settings, end: false },
   ];
 

@@ -9,6 +9,7 @@ import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table';
 import { EmptyState, PageHeader, Pagination, StatusBadge } from '@/components/shared/common';
 import { ClientFormDialog } from '@/features/clients/ClientFormDialog';
 import { ClientDrawer } from '@/features/clients/ClientDrawer';
+import { CsvMenu } from '@/features/csv/CsvMenu';
 import { getPage } from '@/lib/api';
 import { qk } from '@/lib/queryClient';
 import { formatDate } from '@/lib/utils';
@@ -76,9 +77,12 @@ export default function ClientsPage() {
         description="Everyone you're working with, past and present."
         actions={
           isStaff && (
-            <Button onClick={() => setCreating(true)}>
-              <Plus /> New client
-            </Button>
+            <>
+              <CsvMenu entity="clients" invalidate={['clients']} />
+              <Button onClick={() => setCreating(true)}>
+                <Plus /> New client
+              </Button>
+            </>
           )
         }
       />

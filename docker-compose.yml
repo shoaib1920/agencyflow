@@ -1,0 +1,49 @@
+# Run the whole stack locally:   docker compose up --build
+# Load demo data (first time):  docker compose exec api npm run seed:prod
+# Then open http://localhost:8080
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'db.adminCommand("ping")']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./server
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGO_URI: mongodb://mongo:27017/agencyflow
+      CLIENT_URL: http://localhost:8080
+      # Change these for anything beyond local use
+      JWT_ACCESS_SECRET: compose-access-secret-change-me-please
+      JWT_REFRESH_SECRET: compose-refresh-secret-change-me-please
+      # Plain http locally, so don't require Secure cookies (see server/src/utils/tokens.ts)
+      COOKIE_SECURE: 'false'
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      - uploads:/app/uploads
+
+  web:
+    build: ./client
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '8080:80'
+
+volumes:
+  mongo-data:
+  uploads:

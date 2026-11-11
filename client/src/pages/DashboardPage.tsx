@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CalendarClock, CircleDollarSign, KanbanSquare, UsersRound, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CircleDollarSign, Clock, KanbanSquare, Receipt, UsersRound, type LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Skeleton } from '@/components/ui/card';
 import { PageHeader, StatusBadge } from '@/components/shared/common';
 import { ActivityTimeline } from '@/components/shared/ActivityTimeline';
@@ -91,6 +91,14 @@ export default function DashboardPage() {
         <Kpi icon={CircleDollarSign} label="Pipeline value" value={formatMoneyCompact(kpis.pipelineValue)} hint={`${formatMoneyCompact(kpis.revenueWon)} won to date`} to="/leads" />
         <Kpi icon={CalendarClock} label="Due this week" value={String(kpis.projectsDueThisWeek)} hint="Projects with a deadline in 7 days" to="/projects" />
       </div>
+
+      {data.money && (
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <Kpi icon={Receipt} label="Collected" value={formatMoneyCompact(data.money.paid.total)} hint={`${data.money.paid.count} paid invoices`} to="/invoices?status=paid" />
+          <Kpi icon={Clock} label="Outstanding" value={formatMoneyCompact(data.money.outstanding.total)} hint={`${data.money.outstanding.count} sent, not yet due`} to="/invoices?status=sent" />
+          <Kpi icon={AlertTriangle} label="Overdue" value={formatMoneyCompact(data.money.overdue.total)} hint={data.money.overdue.count ? `${data.money.overdue.count} invoice${data.money.overdue.count === 1 ? '' : 's'} past due` : 'Nothing overdue'} to="/invoices?status=overdue" />
+        </div>
+      )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card>

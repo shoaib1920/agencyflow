@@ -8,7 +8,7 @@ import type { AuthUser, Role } from '../utils/types';
 import { env } from '../config/env';
 import { logActivity } from './activity.service';
 import { emailLayout, sendMail } from './mail.service';
-import { issueTokens, type AuthResult } from './auth.service';
+import { issueTokens, publicUser, type AuthResult } from './auth.service';
 
 const INVITE_TTL_DAYS = 7;
 const AVATAR_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -116,7 +116,7 @@ export async function acceptInvite(
   await invite.save();
 
   const tokens = await issueTokens(user, randomId(), userAgent);
-  return { user: user.toJSON(), ...tokens };
+  return { user: await publicUser(user), ...tokens };
 }
 
 export async function listInvites(clientId?: string) {

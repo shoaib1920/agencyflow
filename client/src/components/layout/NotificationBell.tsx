@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, BellOff, CheckCheck, ClipboardList, KanbanSquare, Trophy } from 'lucide-react';
+import { AtSign, Bell, BellOff, CheckCheck, ClipboardList, Clock, KanbanSquare, MessageSquare, Receipt, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/card';
@@ -10,7 +10,16 @@ import { qk } from '@/lib/queryClient';
 import { cn, timeAgo } from '@/lib/utils';
 import type { ApiResponse, Notification } from '@/lib/types';
 
-const ICONS = { task_assigned: ClipboardList, lead_stage: KanbanSquare, lead_won: Trophy, system: Bell };
+const ICONS: Record<Notification['type'], typeof Bell> = {
+  task_assigned: ClipboardList,
+  lead_stage: KanbanSquare,
+  lead_won: Trophy,
+  mention: AtSign,
+  comment: MessageSquare,
+  reminder: Clock,
+  invoice: Receipt,
+  system: Bell,
+};
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);

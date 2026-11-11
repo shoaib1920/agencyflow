@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { api, errorMessage } from '@/lib/api';
 import { qk } from '@/lib/queryClient';
 import { usePermissions } from '@/stores/auth';
+import { CommentThread } from '@/features/comments/CommentThread';
 import type { Project, Task } from '@/lib/types';
 
 const schema = z.object({
@@ -89,7 +90,7 @@ export function TaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className={isEdit ? 'max-w-2xl' : undefined}>
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit task' : 'New task'}</DialogTitle>
           <DialogDescription>Assignees get a live notification.</DialogDescription>
@@ -130,6 +131,12 @@ export function TaskDialog({
             <Textarea rows={3} {...register('description')} />
           </Field>
         </form>
+        {isEdit && (
+          <div className="border-t pt-4">
+            <p className="mb-3 text-sm font-semibold">Comments</p>
+            <CommentThread projectId={project._id} taskId={task._id} people={project.members} compact />
+          </div>
+        )}
         <DialogFooter className="sm:justify-between">
           <div>
             {isEdit && isStaff && (

@@ -22,13 +22,25 @@ api.interceptors.request.use((config) => {
  */
 let refreshPromise: Promise<string | null> | null = null;
 
+/**
+ * One retry for transient failures (network error / 5xx, e.g. the API restarting or a
+ * free-tier host waking up). A real 401 means the session is gone and is not retried.
+ */
+async function postRefresh() {
+  const call = () =>
+    axios.post<ApiResponse<{ user: User; accessToken: string }>>(`${API_URL}/api/auth/refresh`, {}, { withCredentials: true });
+  try {
+    return await call();
+  } catch (err) {
+    const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+    if (status !== undefined && status < 500) throw err;
+    await new Promise((r) => setTimeout(r, 2000));
+    return call();
+  }
+}
+
 export function refreshAccessToken(): Promise<string | null> {
-  refreshPromise ??= axios
-    .post<ApiResponse<{ user: User; accessToken: string }>>(
-      `${API_URL}/api/auth/refresh`,
-      {},
-      { withCredentials: true },
-    )
+  refreshPromise ??= postRefresh()
     .then(({ data }) => {
       useAuth.getState().setSession(data.data.user, data.data.accessToken);
       return data.data.accessToken;

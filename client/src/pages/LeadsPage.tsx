@@ -24,6 +24,8 @@ import { Skeleton } from '@/components/ui/card';
 import { PageHeader } from '@/components/shared/common';
 import { LeadCardView, SortableLeadCard } from '@/features/leads/LeadCard';
 import { LeadFormDialog } from '@/features/leads/LeadFormDialog';
+import { CsvMenu } from '@/features/csv/CsvMenu';
+import { usePermissions } from '@/stores/auth';
 import { groupByStage, positionAt, STAGES, type Board } from '@/features/leads/stages';
 import { api, errorMessage, get } from '@/lib/api';
 import { qk } from '@/lib/queryClient';
@@ -84,6 +86,7 @@ function Column({
 export default function LeadsPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { isStaff } = usePermissions();
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Lead | null>(null);
   const [creatingIn, setCreatingIn] = useState<LeadStage | null>(null);
@@ -208,6 +211,7 @@ export default function LeadsPage() {
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter leads..." className="w-48 pl-9" aria-label="Filter leads" />
             </div>
+            {isStaff && <CsvMenu entity="leads" invalidate={qk.leads as unknown as unknown[]} />}
             <Button onClick={() => setCreatingIn('new')}>
               <Plus /> New lead
             </Button>

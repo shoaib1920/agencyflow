@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'manager' | 'member';
+export type Role = 'admin' | 'manager' | 'member' | 'client';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -29,6 +29,8 @@ export interface User extends UserRef {
   isActive: boolean;
   lastLoginAt?: string;
   createdAt: string;
+  client?: { _id: string; name: string; company?: string } | null;
+  emailNotifications?: boolean;
 }
 
 export type ClientStatus = 'active' | 'paused' | 'closed';
@@ -90,6 +92,7 @@ export interface Project {
   attachments?: Attachment[];
   taskCount?: number;
   doneCount?: number;
+  estimatedHours?: number | null;
   createdAt: string;
 }
 
@@ -105,12 +108,13 @@ export interface Task {
   status: TaskStatus;
   dueDate?: string;
   completedAt?: string;
+  position?: number;
   createdAt: string;
 }
 
 export interface Notification {
   _id: string;
-  type: 'task_assigned' | 'lead_stage' | 'lead_won' | 'system';
+  type: 'task_assigned' | 'lead_stage' | 'lead_won' | 'mention' | 'comment' | 'reminder' | 'invoice' | 'system';
   title: string;
   body?: string;
   link?: string;
@@ -123,7 +127,7 @@ export interface Activity {
   _id: string;
   actor: UserRef;
   action: string;
-  entityType: 'client' | 'lead' | 'project' | 'task' | 'user';
+  entityType: 'client' | 'lead' | 'project' | 'task' | 'user' | 'invoice';
   entityId: string;
   entityName: string;
   project?: string;
@@ -146,4 +150,116 @@ export interface DashboardData {
   tasksByStatus: { status: TaskStatus; count: number }[];
   activity: Activity[];
   myTasks: (Task & { project: { _id: string; title: string } })[];
+  money: MoneySummary | null;
+}
+
+export interface MoneyBucket {
+  total: number;
+  count: number;
+}
+export interface MoneySummary {
+  paid: MoneyBucket;
+  outstanding: MoneyBucket;
+  overdue: MoneyBucket;
+  draft: MoneyBucket;
+}
+
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'void';
+export interface InvoiceItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+}
+export interface Invoice {
+  _id: string;
+  number: string;
+  client: { _id: string; name: string; company?: string; email?: string; country?: string };
+  project?: { _id: string; title: string } | null;
+  lead?: string | null;
+  items: InvoiceItem[];
+  currency: string;
+  taxRate: number;
+  discount: number;
+  subtotal: number;
+  tax: number;
+  total: number;
+  status: InvoiceStatus;
+  displayStatus: InvoiceStatus | 'overdue';
+  issueDate: string;
+  dueDate: string;
+  sentAt?: string;
+  paidAt?: string;
+  notes?: string;
+  createdBy?: { _id: string; name: string };
+  createdAt: string;
+}
+
+export interface Comment {
+  _id: string;
+  project: string;
+  task?: string | null;
+  author: UserRef & { role?: Role };
+  body: string;
+  mentions: { _id: string; name: string }[];
+  internal: boolean;
+  createdAt: string;
+}
+
+export interface RunningTimer {
+  _id: string;
+  startedAt: string;
+  task: { _id: string; title: string };
+  project: { _id: string; title: string };
+}
+export interface ProjectTime {
+  totalMinutes: number;
+  estimatedHours: number | null;
+  byUser: { _id: string; minutes: number; name: string; avatarColor?: string }[];
+  byTask: Record<string, number>;
+  recent: { _id: string; minutes: number; note?: string; endedAt: string; user: UserRef; task: { _id: string; title: string } }[];
+}
+
+export interface Invite {
+  _id: string;
+  email: string;
+  name?: string;
+  role: Role;
+  client?: string;
+  expiresAt: string;
+  invitedBy?: { name: string };
+}
+
+export interface TrashItem {
+  _id: string;
+  type: 'client' | 'lead' | 'project' | 'invoice';
+  name: string;
+  deletedAt: string;
+  deletedBy: string | null;
+  purgeAt: string;
+}
+
+export interface SearchResults {
+  clients: { _id: string; name: string; company?: string; status: string }[];
+  leads: { _id: string; title: string; company?: string; stage: LeadStage; value: number }[];
+  projects: { _id: string; title: string; status: ProjectStatus; client?: { name: string; company?: string } }[];
+  tasks: { _id: string; title: string; status: TaskStatus; project: { _id: string; title: string } }[];
+  invoices: { _id: string; number: string; total: number; status: InvoiceStatus; client?: { name: string } }[];
+}
+
+export interface PortalOverview {
+  client: { _id: string; name: string; company?: string; email: string };
+  projects: (Pick<Project, '_id' | 'title' | 'status' | 'deadline' | 'description'> & { taskCount: number; doneCount: number })[];
+  invoices: Pick<Invoice, '_id' | 'number' | 'total' | 'currency' | 'status' | 'displayStatus' | 'dueDate' | 'issueDate' | 'paidAt'>[];
+  amountDue: number;
+  overdueCount: number;
+}
+export interface PortalProject {
+  _id: string;
+  title: string;
+  description?: string;
+  status: ProjectStatus;
+  deadline?: string;
+  members: (UserRef & { title?: string })[];
+  attachments: Pick<Attachment, '_id' | 'name' | 'url' | 'size' | 'mimeType' | 'createdAt'>[];
+  tasks: Pick<Task, '_id' | 'title' | 'status' | 'dueDate' | 'completedAt' | 'priority'>[];
 }

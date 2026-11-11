@@ -19,6 +19,12 @@ export interface AuthResult {
   refreshToken: string;
 }
 
+/** User JSON for the browser; portal users get their company name for the header. */
+export async function publicUser(user: UserDoc) {
+  if (user.client) await user.populate('client', 'name company');
+  return user.toJSON();
+}
+
 export async function issueTokens(user: UserDoc, family: string, userAgent?: string) {
   const jti = randomId();
   const refreshToken = signRefreshToken({ sub: user.id as string, jti, family });
@@ -52,7 +58,7 @@ export async function register(
     avatarColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
   })) as UserDoc;
   const tokens = await issueTokens(user, randomId(), userAgent);
-  return { user: user.toJSON(), ...tokens };
+  return { user: await publicUser(user), ...tokens };
 }
 
 export async function login(
@@ -68,7 +74,7 @@ export async function login(
   user.lastLoginAt = new Date();
   await user.save();
   const tokens = await issueTokens(user, randomId(), userAgent);
-  return { user: user.toJSON(), ...tokens };
+  return { user: await publicUser(user), ...tokens };
 }
 
 /**
@@ -108,7 +114,7 @@ export async function refresh(rawToken: string | undefined, userAgent?: string):
   stored.replacedBy = tokens.jti;
   await stored.save();
 
-  return { user: user.toJSON(), ...tokens };
+  return { user: await publicUser(user), ...tokens };
 }
 
 export async function logout(rawToken: string | undefined): Promise<void> {

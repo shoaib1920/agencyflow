@@ -150,6 +150,12 @@ const STATUS_VARIANTS: Record<string, BadgeVariant> = {
   admin: 'default',
   manager: 'success',
   member: 'secondary',
+  client: 'warning',
+  draft: 'muted',
+  sent: 'default',
+  paid: 'success',
+  void: 'muted',
+  overdue: 'destructive',
 };
 
 export function StatusBadge({ value, className }: { value: string; className?: string }) {

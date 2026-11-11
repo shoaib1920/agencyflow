@@ -32,6 +32,8 @@ const envSchema = z.object({
     .optional()
     .transform((v) => v !== 'false'),
   LOG_LEVEL: z.string().default('info'),
+  /** Override cookie security (e.g. 'false' for docker compose over plain http). Defaults to production. */
+  COOKIE_SECURE: z.enum(['true', 'false']).optional(),
 });
 
 // API_PORT wins over PORT so tools that inject PORT for the frontend dev server
@@ -60,5 +62,6 @@ export const env = {
       parsed.data.CLOUDINARY_API_SECRET,
   ),
   mailEnabled: Boolean(parsed.data.SMTP_HOST),
+  cookieSecure: parsed.data.COOKIE_SECURE ? parsed.data.COOKIE_SECURE === 'true' : parsed.data.NODE_ENV === 'production',
   aiEnabled: Boolean(parsed.data.ANTHROPIC_API_KEY),
 };

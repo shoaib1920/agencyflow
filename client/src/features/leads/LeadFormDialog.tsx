@@ -4,7 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Trash2 } from 'lucide-react';
+import { Receipt, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AiAssist } from './AiAssist';
 import { Button } from '@/components/ui/button';
 import { Field, Input, NativeSelect, Textarea } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -43,6 +45,7 @@ export function LeadFormDialog({
 }) {
   const qc = useQueryClient();
   const { isStaff } = usePermissions();
+  const navigate = useNavigate();
   const [confirm, setConfirm] = useState(false);
   const isEdit = !!lead;
   const { data: users = [] } = useQuery({ queryKey: qk.users, queryFn: () => get<User[]>('/users'), enabled: open });
@@ -92,6 +95,16 @@ export function LeadFormDialog({
     onError: (err) => toast.error(errorMessage(err)),
   });
 
+  const invoice = useMutation({
+    mutationFn: async () => (await api.post<{ data: { _id: string }; message: string }>(`/invoices/from-lead/${lead?._id}`)).data,
+    onSuccess: (res) => {
+      toast.success(res.message);
+      onOpenChange(false);
+      navigate(`/invoices?open=${res.data._id}`);
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  });
+
   const del = useMutation({
     mutationFn: () => api.delete(`/leads/${lead?._id}`),
     onSuccess: () => {
@@ -113,6 +126,7 @@ export function LeadFormDialog({
               {isEdit && lead.client ? 'This lead has been converted into a client.' : 'Moving a lead to Won creates a client automatically.'}
             </DialogDescription>
           </DialogHeader>
+          {isEdit && <AiAssist leadId={lead._id} />}
           <form id="lead-form" onSubmit={handleSubmit((v) => save.mutate(v))} className="grid gap-4 sm:grid-cols-2" noValidate>
             <Field label="Deal title" error={errors.title?.message} className="sm:col-span-2">
               <Input aria-invalid={!!errors.title} placeholder="e.g. E-commerce rebuild" {...register('title')} />
@@ -142,7 +156,8 @@ export function LeadFormDialog({
               </NativeSelect>
             </Field>
             <Field label="Owner">
-              <NativeSelect {...register('owner')}>
+              {/* key: remount once the user list arrives so the saved owner is selected */}
+              <NativeSelect key={users.length} {...register('owner')}>
                 <option value="">Me</option>
                 {users.map((u) => (
                   <option key={u._id} value={u._id}>
@@ -163,6 +178,11 @@ export function LeadFormDialog({
               {isEdit && isStaff && (
                 <Button variant="ghost" className="text-destructive" onClick={() => setConfirm(true)}>
                   <Trash2 /> Delete
+                </Button>
+              )}
+              {isEdit && isStaff && lead.stage === 'won' && lead.client && (
+                <Button variant="ghost" loading={invoice.isPending} onClick={() => invoice.mutate()}>
+                  <Receipt /> Invoice this deal
                 </Button>
               )}
             </div>

@@ -20,6 +20,7 @@ const DEMO = [
   { label: 'Admin', email: 'admin@agencyflow.dev', password: 'Admin@123' },
   { label: 'Manager', email: 'manager@agencyflow.dev', password: 'Manager@123' },
   { label: 'Member', email: 'sam@agencyflow.dev', password: 'Member@123' },
+  { label: 'Client portal', email: 'client@agencyflow.dev', password: 'Client@123' },
 ];
 
 export default function LoginPage() {

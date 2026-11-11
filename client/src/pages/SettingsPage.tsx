@@ -27,6 +27,15 @@ export default function SettingsPage() {
   const user = useAuth((s) => s.user)!;
   const { theme, setTheme } = useUI();
 
+  const emailPref = useMutation({
+    mutationFn: (on: boolean) => api.patch<ApiResponse<User>>('/auth/me', { emailNotifications: on }),
+    onSuccess: ({ data }) => {
+      useAuth.getState().setUser(data.data);
+      toast.success(data.data.emailNotifications ? 'Email notifications on' : 'Email notifications off');
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  });
+
   const profile = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: { name: user.name, title: user.title ?? '', avatarColor: user.avatarColor ?? COLORS[0] },
@@ -125,6 +134,28 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Notifications</CardTitle>
+            <CardDescription>In-app notifications are always on. Choose whether important ones are also emailed to you.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <label className="flex items-center justify-between gap-4 rounded-lg border p-4">
+              <span>
+                <span className="block text-sm font-medium">Email me</span>
+                <span className="text-xs text-muted-foreground">Mentions, due-date reminders and client messages.</span>
+              </span>
+              <input
+                type="checkbox"
+                className="h-5 w-5 accent-[hsl(var(--primary))]"
+                checked={user.emailNotifications !== false}
+                disabled={emailPref.isPending}
+                onChange={(e) => emailPref.mutate(e.target.checked)}
+              />
+            </label>
           </CardContent>
         </Card>
 

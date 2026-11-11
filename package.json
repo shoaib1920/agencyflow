@@ -8,7 +8,7 @@
     "install:all": "npm install && npm install --prefix server && npm install --prefix client",
     "build": "npm run build --prefix server && npm run build --prefix client",
     "seed": "npm run seed --prefix server",
-    "test": "npm test --prefix server",
+    "test": "npm test --prefix server && npm test --prefix client",
     "lint": "npm run lint --prefix server && npm run lint --prefix client",
     "format": "prettier --write \"server/src/**/*.ts\" \"server/tests/**/*.ts\" \"client/src/**/*.{ts,tsx,css}\""
   },

@@ -7,3 +7,6 @@ server/uploads/*
 coverage/
 *.log
 .DS_Store
+
+# local MongoDB data for development
+.data/

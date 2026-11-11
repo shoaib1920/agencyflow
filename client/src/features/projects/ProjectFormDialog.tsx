@@ -21,6 +21,7 @@ const schema = z.object({
   status: z.enum(['planning', 'active', 'on-hold', 'completed']),
   description: z.string().optional(),
   members: z.array(z.string()),
+  estimatedHours: z.coerce.number().min(0).optional(),
 });
 type Values = z.infer<typeof schema>;
 
@@ -60,6 +61,7 @@ export function ProjectFormDialog({
       status: project?.status ?? 'planning',
       description: project?.description ?? '',
       members: project?.members.map((m) => m._id) ?? [],
+      estimatedHours: project?.estimatedHours ?? undefined,
     });
   }, [open, project, reset]);
 
@@ -93,7 +95,7 @@ export function ProjectFormDialog({
             <Input aria-invalid={!!errors.title} {...register('title')} />
           </Field>
           <Field label="Client" error={errors.client?.message}>
-            <NativeSelect aria-invalid={!!errors.client} {...register('client')}>
+            <NativeSelect key={clients?.items.length ?? 0} aria-invalid={!!errors.client} {...register('client')}>
               <option value="">Select a client…</option>
               {clients?.items.map((c) => (
                 <option key={c._id} value={c._id}>
@@ -115,6 +117,9 @@ export function ProjectFormDialog({
           </Field>
           <Field label="Deadline">
             <Input type="date" {...register('deadline')} />
+          </Field>
+          <Field label="Estimated hours (for time tracking)">
+            <Input type="number" min={0} step={5} placeholder="e.g. 120" {...register('estimatedHours')} />
           </Field>
           <Field label="Team members" className="sm:col-span-2">
             <Controller

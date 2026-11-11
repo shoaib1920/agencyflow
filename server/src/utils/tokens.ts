@@ -49,8 +49,8 @@ export const randomId = () => crypto.randomUUID();
 export function refreshCookieOptions(): CookieOptions {
   return {
     httpOnly: true,
-    secure: env.isProd,
-    sameSite: env.isProd ? 'none' : 'lax',
+    secure: env.cookieSecure,
+    sameSite: env.cookieSecure ? 'none' : 'lax',
     path: '/api/auth',
     maxAge: env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000,
   };
